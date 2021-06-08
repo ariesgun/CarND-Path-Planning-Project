@@ -14,6 +14,10 @@ using nlohmann::json;
 using std::string;
 using std::vector;
 
+// Reference lane and velocity
+int lane = 1;
+double ref_vel = 0.0;
+
 int main() {
   uWS::Hub h;
 
@@ -55,10 +59,6 @@ int main() {
     &map_waypoints_dx, &map_waypoints_dy]
     (uWS::WebSocket<uWS::SERVER>* ws, char* data, size_t length,
       uWS::OpCode opCode) {
-
-        // Reference lane and velocity
-        int lane = 1;
-        const double ref_vel = 49.5;
 
         // "42" at the start of the message means there's a websocket message event.
         // The 4 signifies a websocket message
@@ -105,6 +105,105 @@ int main() {
                */
               int prev_size = previous_path_x.size();
 
+              // if (prev_size > 0) {
+              //   car_s = end_path_s;
+              // }
+
+              // Get sensor fusion
+              bool too_close = false;
+              bool too_far = true;
+              bool possible_to_change = true;
+
+              double front_speed_ref = 0.0;
+
+              for (int i = 0; i < sensor_fusion.size(); i++) {
+                float d = sensor_fusion[i][6];
+                if ((d < (2 + 4 * lane + 2)) && (d > (2 + 4 * lane - 2))) {
+                  double vx = sensor_fusion[i][3];
+                  double vy = sensor_fusion[i][4];
+                  double check_speed = sqrt(vx * vx + vy * vy);
+                  double check_car_s = sensor_fusion[i][5];
+
+                  // Predict where the car will be in the future.
+                  // check_car_s += ((double)prev_size * 0.02 * check_speed);
+                  if ((check_car_s > car_s) && ((check_car_s - car_s) < 30)) {
+                    // ref_vel = check_speed;
+                    std::cout << "too close, speed: " << check_speed * 2.24 << " vs " << car_speed << "\n";
+                    too_close = true;
+                    front_speed_ref = check_speed * 2.24;
+                  }
+                }
+
+                if (lane == 0) {
+                  // Left Lane
+                  // THen check if the middle lane is empty, if so then take middle
+                  if ((d < (2 + 4 * (lane + 1) + 2)) && (d > (2 + 4 * (lane + 1) - 2))) {
+                    double check_car_s = sensor_fusion[i][5];
+                    if ((check_car_s > car_s) && ((check_car_s - car_s) < 35)) {
+                      possible_to_change = false;
+                    }
+                    else if ((check_car_s < car_s) && ((car_s - check_car_s) < 5)) {
+                      possible_to_change = false;
+                    }
+                  }
+                }
+                else if (lane == 1) {
+                  // Middle lane
+                  // Check if the lef tlane is empty, if so, then take left.
+                  if ((d < (2 + 4 * (lane - 1) + 2)) && (d > (2 + 4 * (lane - 1) - 2))) {
+                    double check_car_s = sensor_fusion[i][5];
+                    if ((check_car_s > car_s) && ((check_car_s - car_s) < 35)) {
+                      possible_to_change = false;
+                    }
+                    else if ((check_car_s < car_s) && ((car_s - check_car_s) < 5)) {
+                      possible_to_change = false;
+                    }
+                  }
+                  // else if ((d < (2 + 4 * (lane + 1) + 2)) && (d > (2 + 4 * (lane + 1) - 2))) {
+                  //   double check_car_s = sensor_fusion[i][5];
+                  //   if ((check_car_s > car_s) && ((check_car_s - car_s) < 35)) {
+                  //     possible_to_change = false;
+                  //   }
+                  // }
+                }
+                else if (lane == 2) {
+                  // Right lane
+                  // Check if the middle tlane is empty, if so, then take middle.
+                  if ((d < (2 + 4 * (lane - 1) + 2)) && (d > (2 + 4 * (lane - 1) - 2))) {
+                    double check_car_s = sensor_fusion[i][5];
+                    if ((check_car_s > car_s) && ((check_car_s - car_s) < 35)) {
+                      possible_to_change = false;
+                    }
+                  }
+                }
+
+              }
+
+              std::cout << "Car speed: " << car_speed << std::endl;
+              if (front_speed_ref > 0.0) {
+                if (possible_to_change) {
+                  ref_vel -= 0.448;
+                  if (car_speed < 43) {
+                    lane = (lane == 0) ? 1 : 0;
+                  }
+                }
+                else {
+                  // Maintain speed
+                  if (abs(car_speed - front_speed_ref) < 2.0) {
+                    ref_vel = front_speed_ref;
+                  }
+                  else if (car_speed > front_speed_ref) {
+                    ref_vel -= 0.448;
+                  }
+                  else if (car_speed < front_speed_ref) {
+                    ref_vel += 0.448;
+                  }
+                }
+              }
+              else if (ref_vel < 49.0) {
+                ref_vel += 0.448;
+              }
+
               // Create a list of widely space (x,y) waypoints. Spline will interpolate these waypoints
               vector<double> ptsx;
               vector<double> ptsy;
@@ -143,9 +242,9 @@ int main() {
               }
 
               // In Frenet, add evenly 30m spaced points ahead of the starting reference.
-              vector<double> next_wp_0 = getXY(car_s + 30, (2 + 4 * lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
-              vector<double> next_wp_1 = getXY(car_s + 60, (2 + 4 * lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
-              vector<double> next_wp_2 = getXY(car_s + 90, (2 + 4 * lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
+              vector<double> next_wp_0 = getXY(car_s + 35, (2 + 4 * lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
+              vector<double> next_wp_1 = getXY(car_s + 70, (2 + 4 * lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
+              vector<double> next_wp_2 = getXY(car_s + 105, (2 + 4 * lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
 
               ptsx.push_back(next_wp_0[0]);
               ptsx.push_back(next_wp_1[0]);
@@ -180,6 +279,8 @@ int main() {
 
               double x_add_on = 0;
 
+              std::cout << "Size: " << next_x_vals.size() << " vs " << previous_path_x.size() << std::endl;
+
               for (int i = 0; i <= 50 - previous_path_x.size(); i++) {
                 double N = (target_dist / (0.02 * ref_vel / 2.24));
                 double x_point = x_add_on + target_x / N;
@@ -209,6 +310,8 @@ int main() {
               msgJson["next_y"] = next_y_vals;
 
               auto msg = "42[\"control\"," + msgJson.dump() + "]";
+
+
 
               ws->send(msg.data(), msg.length(), uWS::OpCode::TEXT);
             }  // end "telemetry" if
