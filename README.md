@@ -1,19 +1,45 @@
 # CarND-Path-Planning-Project
+
 Self-Driving Car Engineer Nanodegree Program
-   
+
 ### Simulator.
-You can download the Term3 Simulator which contains the Path Planning Project from the [releases tab (https://github.com/udacity/self-driving-car-sim/releases/tag/T3_v1.2).  
+
+You can download the Term3 Simulator which contains the Path Planning Project from the [releases tab (https://github.com/udacity/self-driving-car-sim/releases/tag/T3_v1.2).
 
 To run the simulator on Mac/Linux, first make the binary file executable with the following command:
+
 ```shell
 sudo chmod u+x {simulator_file_name}
 ```
 
+### Model Documentation
+
+The solutions consists of two main components:
+
+- **Trajectory Generation** which can be found in `main.cpp`.
+- **Behaviour Planning** which can be found in `core.h`.
+
+#### Trajectory Generation
+
+The trajectory generation follows the guide provided in the project walkthrough video. It uses a 3rd library called `spline` to generate jerk-free trajectories. The main idea is to create a widely-spaced point and then fill the in-between spaces with more new points using the `spline` function. It is also important to note that the coordinates need to transformed from map's perspectives into car's perspective. It enables easier path computation with yaw = 0.
+
+#### Behaviour Planning
+
+The ego car has three states: `KeepLane`, `PrepareLaneChange`, and `LaneChange`.
+
+In the `KeepLane` state, the car will accelerate to the maximum allowed speed if there is no car in front of it. If there is a car blocking the traffic, it will decrease and maintain its speed to avoid collision. At the same time, it will check if it is possible to switch lane when it is possible.
+
+The decision to switch lanes is based on whether the car is blocked by a car in front of it. If so, it will check if there is any car on the other lanes. As soon as the lane is free or safe to change to, the ego will start the lane change transition (switch state to `PrepareLaneChange` and eventually to `LaneChange`). In the `PrepareLaneChange` and `LaneChange` state, the car will try to decrease the speed and maintain it to avoid too big acceleration during the transition. The car will stay in the `LaneChange` state until the car reaches the new lane (with margin 1.2m). The car will not accelerate/ deaccelerate while it is in this state. After the car reaches the new lane, it switch its state to 'KeepLane'.
+
+Since the goal is to travel in a highway without incident without any goal, only one cost function is defined for this behaviour planning. It is only used to decide which lane to switch to from the middle lane. If the car is in the middle lane, it will get the cars' speed on the left lane and right lane. Taken into account the distance `s` of those cars relative to the ego car's distance, the cost function is calculated by dividing the speed by the distance. With this simple calculation, the car will be the lane where the traffic speed is higher or where there is no car within several meters.
+
 ### Goals
+
 In this project your goal is to safely navigate around a virtual highway with other traffic that is driving +-10 MPH of the 50 MPH speed limit. You will be provided the car's localization and sensor fusion data, there is also a sparse map list of waypoints around the highway. The car should try to go as close as possible to the 50 MPH speed limit, which means passing slower traffic when possible, note that other cars will try to change lanes too. The car should avoid hitting other cars at all cost as well as driving inside of the marked road lanes at all times, unless going from one lane to another. The car should be able to make one complete loop around the 6946m highway. Since the car is trying to go 50 MPH, it should take a little over 5 minutes to complete 1 loop. Also the car should not experience total acceleration over 10 m/s^2 and jerk that is greater than 10 m/s^3.
 
 #### The map of the highway is in data/highway_map.txt
-Each waypoint in the list contains  [x,y,s,dx,dy] values. x and y are the waypoint's map coordinate position, the s value is the distance along the road to get to that waypoint in meters, the dx and dy values define the unit normal vector pointing outward of the highway loop.
+
+Each waypoint in the list contains [x,y,s,dx,dy] values. x and y are the waypoint's map coordinate position, the s value is the distance along the road to get to that waypoint in meters, the dx and dy values define the unit normal vector pointing outward of the highway loop.
 
 The highway's waypoints loop around so the frenet s value, distance along the road, goes from 0 to 6945.554.
 
@@ -43,13 +69,13 @@ Here is the data provided from the Simulator to the C++ Program
 #### Previous path data given to the Planner
 
 //Note: Return the previous list but with processed points removed, can be a nice tool to show how far along
-the path has processed since last time. 
+the path has processed since last time.
 
 ["previous_path_x"] The previous list of x points previously given to the simulator
 
 ["previous_path_y"] The previous list of y points previously given to the simulator
 
-#### Previous path's end s and d values 
+#### Previous path's end s and d values
 
 ["end_path_s"] The previous list's last point's frenet s value
 
@@ -57,7 +83,7 @@ the path has processed since last time.
 
 #### Sensor Fusion Data, a list of all other car's attributes on the same side of the road. (No Noise)
 
-["sensor_fusion"] A 2d vector of cars and then that car's [car's unique ID, car's x position in map coordinates, car's y position in map coordinates, car's x velocity in m/s, car's y velocity in m/s, car's s position in frenet coordinates, car's d position in frenet coordinates. 
+["sensor_fusion"] A 2d vector of cars and then that car's [car's unique ID, car's x position in map coordinates, car's y position in map coordinates, car's x velocity in m/s, car's y velocity in m/s, car's s position in frenet coordinates, car's d position in frenet coordinates.
 
 ## Details
 
@@ -73,21 +99,21 @@ A really helpful resource for doing this project and creating smooth trajectorie
 
 ## Dependencies
 
-* cmake >= 3.5
-  * All OSes: [click here for installation instructions](https://cmake.org/install/)
-* make >= 4.1
-  * Linux: make is installed by default on most Linux distros
-  * Mac: [install Xcode command line tools to get make](https://developer.apple.com/xcode/features/)
-  * Windows: [Click here for installation instructions](http://gnuwin32.sourceforge.net/packages/make.htm)
-* gcc/g++ >= 5.4
-  * Linux: gcc / g++ is installed by default on most Linux distros
-  * Mac: same deal as make - [install Xcode command line tools]((https://developer.apple.com/xcode/features/)
-  * Windows: recommend using [MinGW](http://www.mingw.org/)
-* [uWebSockets](https://github.com/uWebSockets/uWebSockets)
-  * Run either `install-mac.sh` or `install-ubuntu.sh`.
-  * If you install from source, checkout to commit `e94b6e1`, i.e.
+- cmake >= 3.5
+  - All OSes: [click here for installation instructions](https://cmake.org/install/)
+- make >= 4.1
+  - Linux: make is installed by default on most Linux distros
+  - Mac: [install Xcode command line tools to get make](https://developer.apple.com/xcode/features/)
+  - Windows: [Click here for installation instructions](http://gnuwin32.sourceforge.net/packages/make.htm)
+- gcc/g++ >= 5.4
+  - Linux: gcc / g++ is installed by default on most Linux distros
+  - Mac: same deal as make - [install Xcode command line tools]((https://developer.apple.com/xcode/features/)
+  - Windows: recommend using [MinGW](http://www.mingw.org/)
+- [uWebSockets](https://github.com/uWebSockets/uWebSockets)
+  - Run either `install-mac.sh` or `install-ubuntu.sh`.
+  - If you install from source, checkout to commit `e94b6e1`, i.e.
     ```
-    git clone https://github.com/uWebSockets/uWebSockets 
+    git clone https://github.com/uWebSockets/uWebSockets
     cd uWebSockets
     git checkout e94b6e1
     ```
@@ -98,8 +124,8 @@ We've purposefully kept editor configuration files out of this repo in order to
 keep it as simple and environment agnostic as possible. However, we recommend
 using the following settings:
 
-* indent using spaces
-* set tab width to 2 spaces (keeps the matrices in source code aligned)
+- indent using spaces
+- set tab width to 2 spaces (keeps the matrices in source code aligned)
 
 ## Code Style
 
@@ -109,7 +135,6 @@ Please (do your best to) stick to [Google's C++ style guide](https://google.gith
 
 Note: regardless of the changes you make, your project must be buildable using
 cmake and make!
-
 
 ## Call for IDE Profiles Pull Requests
 
@@ -125,8 +150,8 @@ appreciate, we'd love to have you add the requisite profile files and
 instructions to ide_profiles/. For example if you wanted to add a VS Code
 profile, you'd add:
 
-* /ide_profiles/vscode/.vscode
-* /ide_profiles/vscode/README.md
+- /ide_profiles/vscode/.vscode
+- /ide_profiles/vscode/README.md
 
 The README should explain what the profile does, how to take advantage of it,
 and how to install it.
@@ -141,5 +166,5 @@ One last note here: regardless of the IDE used, every submitted project must
 still be compilable with cmake and make./
 
 ## How to write a README
-A well written README file can enhance your project and portfolio.  Develop your abilities to create professional README files by completing [this free course](https://www.udacity.com/course/writing-readmes--ud777).
 
+A well written README file can enhance your project and portfolio. Develop your abilities to create professional README files by completing [this free course](https://www.udacity.com/course/writing-readmes--ud777).

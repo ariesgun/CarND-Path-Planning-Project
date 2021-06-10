@@ -126,8 +126,8 @@ private:
 
       int left_id = -1;
       int right_id = -1;
-      int left_vel = 0;
-      int right_vel = 0;
+      double left_vel = 0;
+      double right_vel = 0;
 
       for (int i = 0; i < sensor_fusion.size(); ++i) {
         float d = sensor_fusion[i][6];
@@ -164,8 +164,8 @@ private:
         }
       }
 
-      int left_score = left_id == -1 ? 0 : (left_vel / (sensor_fusion[left_id][5] - cur_s));
-      int right_score = right_id == -1 ? 0 : (right_vel / (sensor_fusion[right_id][5] - cur_s));
+      double left_score = left_id == -1 ? 0 : (left_vel / (sensor_fusion[left_id][5] - cur_s));
+      double right_score = right_id == -1 ? 0 : (right_vel / (sensor_fusion[right_id][5] - cur_s));
 
       return left_score <= right_score ? 0 : 2;
     }

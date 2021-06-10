@@ -99,7 +99,7 @@ int main() {
               vector<double> next_y_vals;
 
               /**
-               * TODO: define a path made up of (x,y) points that the car will visit
+               * Define a path made up of (x,y) points that the car will visit
                *   sequentially every .02 seconds
                */
               int prev_size = previous_path_x.size();
@@ -109,15 +109,18 @@ int main() {
               }
 
               std::tuple<int, double> planInfo = pathPlanner.generate_plan(car_speed,
-                                                                           car_s, 
-                                                                           car_d, 
-                                                                           end_path_s, 
-                                                                           prev_size, 
-                                                                           sensor_fusion);
+                car_s,
+                car_d,
+                end_path_s,
+                prev_size,
+                sensor_fusion);
               int lane = std::get<0>(planInfo);
               double ref_vel = std::get<1>(planInfo);
 
-              // Create a list of widely space (x,y) waypoints. Spline will interpolate these waypoints
+              /*
+               * Trajectory Generation starts here!.
+               */
+               // Create a list of widely space (x,y) waypoints. Spline will interpolate these waypoints
               vector<double> ptsx;
               vector<double> ptsy;
 
@@ -151,11 +154,6 @@ int main() {
 
                 ptsy.push_back(ref_prev_y);
                 ptsy.push_back(ref_y);
-
-                std::cout << "S: " << car_s << "; d: " << car_d << std::endl;
-                std::vector<double> test = getFrenet(ref_x, ref_y, ref_yaw, map_waypoints_x, map_waypoints_y);
-                std::cout << "S2: " << test[0] << "; d: " << test[1] << std::endl;
-
               }
 
               // In Frenet, add evenly 30m spaced points ahead of the starting reference.
